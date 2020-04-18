@@ -8,6 +8,7 @@ from ast import literal_eval
 # Load world
 world = World()
 
+
 # You may uncomment the smaller graphs for development and testing purposes.
 # map_file = "maps/test_line.txt"
 # map_file = "maps/test_cross.txt"
@@ -24,48 +25,55 @@ world.print_rooms()
 
 player = Player(world.starting_room)
 
+direction_flipped = {'w': 'e', 's': 'n', 'e': 'w', 'n': 's'}
+
 # Fill this out with directions to walk
 # traversal_path = ['n', 'n']
 traversal_path = []
+
+def travel_path(prev_rooms=[]):
+    player_room = player.current_room
+    d_f = direction_flipped
+    prev_direction = []
+# Start off by finding all of the potential exits in the player's current room,
+# then move the player towards the exit.
+    for direction in player_room.get_exits():
+        player.travel(direction)
+# If the player has not been to their current room (not in prev_rooms), 
+# add it to the previous rooms list now (prev_rooms.append(player_room.id))
+# also add the player's recent direction to the previous direction list 
+# (prev_direction.append(direction)).
+        if player.current_room.id not in prev_rooms:
+            prev_direction.append(direction)
+            prev_rooms.append(player_room.id)
+# Add the new previous rooms to prev_direction from travel_path, then 
+# move the player.
+            prev_direction = prev_direction + travel_path(prev_rooms)
+            player.travel(d_f[direction])
+            prev_direction.append(d_f[direction])
+        else:
+            player.travel(d_f[direction])
+
+    return prev_direction
+
+traversal_path = travel_path() 
 
 # TRAVERSAL TEST
 visited_rooms = set()
 player.current_room = world.starting_room
 visited_rooms.add(player.current_room)
 
-# Define the possible 'forward moves'
-nextMovePossible = {'n': 'e', 'e': 's', 's': 'w', 'w': None }
-
-# Define the possible 'backwards moves'
-moveBack = {'n': 's', 's': 'n', 'e': 'w', 'w': 'e' }
-
-steps = ['n']
-
-while len(steps) > 0: 
-    # Define 'move' as equal to steps 'minus' the last step logged (deleting last step)
-    move = steps.pop()
+for move in traversal_path:
     player.travel(move)
-    if player.current_room not in visited_rooms:
-        # If the current room that the player is in has not been visited, move forward/backwards and 
-        # add that to the end of traversal path and steps, then add the player's current room to visited rooms.
-        traversal_path.append(moveBack[move])
-        steps.append(moveBack[move])
-        visited_rooms.add(player.current_room)
-
-    for newMove in ['n', 'e', 's', 'w']:
-        newRoom = player.current_room.get_room_in_direction(newMove)
-        if newRoom and newRoom not in visited_rooms:
-            # If the player's newest room has not been visited yet, add the newest move to the
-            # end of the traversal path and steps. 
-            traversal_path.append(newMove)
-            steps.append(newMove)
-            break
+    visited_rooms.add(player.current_room)
 
 if len(visited_rooms) == len(room_graph):
-    print(f"TESTS PASSED: Hey wow good job bud! You did it in {len(traversal_path)} moves and visited all {len(visited_rooms)} rooms!")
+    print(f"TESTS PASSED: {len(traversal_path)} moves, {len(visited_rooms)} rooms visited")
 else:
     print("TESTS FAILED: INCOMPLETE TRAVERSAL")
     print(f"{len(room_graph) - len(visited_rooms)} unvisited rooms")
+
+
 
 #######
 # UNCOMMENT TO WALK AROUND
